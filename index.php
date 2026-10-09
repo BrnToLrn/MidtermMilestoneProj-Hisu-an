@@ -13,6 +13,7 @@ $sql .= ' ORDER BY r.created_at DESC';
 $statement = $pdo->prepare($sql); $statement->execute($params); $recipes = $statement->fetchAll();
 page_start('Japanese recipes');
 ?>
+<div class="listing-page">
 <section class="hero">
     <div><p class="eyebrow">Japanese home cooking</p><h1>Small dishes, big warmth.</h1><p class="muted">Discover comforting Japanese recipes, from quick bento lunches to cozy bowls of ramen.</p></div>
     <a class="button" href="recipe_form.php">Share a recipe</a>
@@ -28,4 +29,5 @@ page_start('Japanese recipes');
     <span class="tag"><?= e($recipe['category_name']) ?></span><h3><a href="recipe.php?id=<?= $recipe['id'] ?>"><?= e($recipe['title']) ?></a></h3>
     <p><?= e($recipe['description']) ?></p><p class="meta muted">By <?= e($recipe['author_name']) ?> · <?= date('M j, Y', strtotime($recipe['created_at'])) ?><?= $recipe['updated_at'] ? ' · edited' : '' ?></p>
 </article><?php endforeach; ?></div><?php endif; ?>
+</div>
 <?php page_end(); ?>
