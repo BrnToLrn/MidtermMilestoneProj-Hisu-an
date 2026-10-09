@@ -1,0 +1,18 @@
+<?php
+require_once __DIR__ . '/functions.php'; require_login();
+$id=(int)($_GET['id']??0); $user=current_user(); $repository=recipe_repository(); $recipe=$repository->find($id,(int)$user['id']);
+if (!$recipe) { http_response_code(404); exit('Recipe not found.'); }
+$ingredients=$repository->ingredients($id); $comments=$repository->comments($id); $commentError=null;
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+    verify_csrf(); $body=trim($_POST['body']??'');
+    if (strlen($body)<2 || strlen($body)>1000) $commentError='Comment must be 2 to 1,000 characters.';
+    else { $statement=$pdo->prepare('INSERT INTO comments (recipe_id,user_id,body) VALUES (:recipe,:user,:body)'); $statement->execute(['recipe'=>$id,'user'=>$user['id'],'body'=>$body]); flash('success','Your comment was added.'); redirect('recipe.php?id='.$id); }
+}
+page_start($recipe['title']);
+?>
+<article class="detail-card"><span class="tag"><?=e($recipe['category_name'])?></span><h1><?=e($recipe['title'])?></h1><p class="muted"><?=e($recipe['description'])?></p><p class="muted">Serves <?= (int)$recipe['servings'] ?> · Shared by <?=e($recipe['author_name'])?> · <?=date('M j, Y',strtotime($recipe['created_at']))?><?= $recipe['updated_at']?' · edited':'' ?></p>
+<div class="actions"><button class="button favorite-button <?= $recipe['is_favorite']?'saved':'' ?>" data-favorite="<?=$id?>" data-csrf="<?=e(csrf_token())?>"><?= $recipe['is_favorite']?'♥ Saved':'♡ Save favorite' ?></button><span class="muted"><strong data-favorite-count><?=$recipe['favorite_count']?></strong> saves</span><button class="button button-secondary" type="button" onclick="window.print()">Print recipe</button><?php if((int)$recipe['user_id']===(int)$user['id']):?><a class="button button-secondary" href="recipe_form.php?id=<?=$id?>">Edit</a><form class="inline" method="post" action="recipe_delete.php" onsubmit="return confirm('Delete this recipe?');"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="id" value="<?=$id?>"><button class="button button-danger" type="submit">Delete</button></form><?php endif;?></div>
+<h2>Ingredients</h2><ul class="ingredients"><?php foreach($ingredients as $ingredient):?><li><span><?=e($ingredient['quantity'])?></span><span><?=e($ingredient['name'])?></span></li><?php endforeach;?></ul><h2>Cooking steps</h2><p style="white-space:pre-wrap"><?=e($recipe['steps'])?></p><h2>Neighbor feedback</h2>
+<?php if($commentError):?><div class="notice error"><?=e($commentError)?></div><?php endif;?><form method="post"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><label for="body">Leave a comment</label><textarea id="body" name="body" maxlength="1000" required placeholder="What did you think?"></textarea><button class="button" type="submit">Post comment</button></form>
+<?php foreach($comments as $comment):?><div class="comment"><strong><?=e($comment['author_name'])?></strong> <small><?=date('M j, Y g:i A',strtotime($comment['created_at']))?><?=$comment['updated_at']?' · edited':''?></small><p><?=e($comment['body'])?></p><?php if((int)$comment['user_id']===(int)$user['id']):?><a class="button button-secondary button-small" href="comment_edit.php?id=<?=$comment['id']?>">Edit</a><form class="inline" method="post" action="comment_delete.php" onsubmit="return confirm('Delete this comment?');"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="id" value="<?=$comment['id']?>"><input type="hidden" name="recipe_id" value="<?=$id?>"><button class="button button-secondary button-small" type="submit">Delete</button></form><?php endif;?></div><?php endforeach;?></article>
+<?php page_end(); ?>
